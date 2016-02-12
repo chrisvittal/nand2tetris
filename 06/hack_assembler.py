@@ -1,6 +1,6 @@
 # These are the inital dictionaries used for translation
 # of the hack assembly into hack machine code.
-symbol_dict = {'R{}'.format(x): x for x in range(0,16)}
+symbol_dict = create_symbols()
 comp_dict = {'0'  : '0101010', '1'  : '0111111',
              '-1' : '0111010', 'D'  : '0001100',
              'A'  : '0110000', 'M'  : '1110000',
@@ -30,35 +30,74 @@ jump_dict = {''   : '000', 'JGT': '001',
              'JEQ': '010', 'JGE': '011',
              'JLT': '100', 'JNE': '101',
              'JLE': '110', 'JMP': '111'}
+dictionaries = {'symbol': symbol_dict,
+                'comp':   comp_dict,
+                'dest':   dest_dict,
+                'jump':   jump_dict}
 
-def decode(infile, outfile):
+def create_symbols():
+    symbol_dict = {'R{}'.format(x): '{:016b}'.format(x) for x in range(0,16)}
+    predefineds = [('SP', 0), ('LCL', 1), ('ARG', 2), ('THIS', 3),
+                   ('THAT', 4), ('SCREEN', 16384), ('KBD', 24576)]
+    for x in predefineds:
+        symbol_dict[x[0]] = '{:016b}'.format(x[1])
+    return symbol_dict
+
+def get_labels(infile, symbol):
+    '''Runs thrught the .asm file getting the L_COMMANDs
+    and assigning the appropriate numbers to them'''
+
+def decode(infile, outfile, dicts):
     '''Runs through the .asm file creating the hack machine code while
     writing to the destination file.
     '''
+    add_used = 16
     while 1:
         more, line = has_more_commands(infile)
         if more:
-            # do stuff
-            if get_command_type(line): #True if A_COMMAND or L_COMMAND
-                # do stuff
-            else: #True if C_COMMAND
-                decode_C_COMMAND(line)
+            newline = parse_line(line)
+            if get_command_type(newline) == 'a': #True if A_COMMAND
+                output, add_used = decode_A_COMMAND(newline,
+                                                    dicts['symbol'],
+                                                    add_used)
+            elif get_command_type(newline) == 'l': #True if L_COMMAND
+                # do NOTHING?
+            else: #True if C_COMMAND or not a command.
+                output = decode_C_COMMAND(newline,
+                                          dicts['comp'],
+                                          dicts['dest'],
+                                          dicts['jump'])
+
         else:
             outfile.close()
             return
 
-def parse_C(line):
-    newline = line.replace(' ', '')
-    parsed_C = []
-    comment, endline = newline.find('//'), newline.find('\n')
+def decode_A_COMMAND(line, symbol, add_used):
+    try:
+        adr = int(line[1:])
+        return '{:016b}'.format(adr), add_used
+    except:
+        if line[1:] in symbol:
+            return symbol[line[1:]], add_used
+        else:
+            symbol[line[1:]] = '{:016b}'.format(add_used)
+            return symbol[line[1:]], add_used + 1
+
+def parse_line(line):
+    line = line.replace(' ', '')
+    comment, endline = line.find('//'), line.find('\n')
     if comment >= 0:
-        newline = newline[:comment]
+        line = line[:comment]
     elif endline >= 0:
-        newline = newline[:endline]
-    eqpos, semipos = newline.find('='), newline.find(';')
-    parsed_C.append(get_comp(newline, eqpos, semipos))
-    parsed_C.append(get_dest(newline, eqpos))
-    parsed_C.append(get_jump(newline, semipos))
+        line = line[:endline]
+    return line
+
+def parse_C(line):
+    parsed_C = []
+    eqpos, semipos = line.find('='), line.find(';')
+    parsed_C.append(get_comp(line, eqpos, semipos))
+    parsed_C.append(get_dest(line, eqpos))
+    parsed_C.append(get_jump(line, semipos))
     return parsed_C
 
 def get_comp(line, eqpos, semipos):
@@ -103,11 +142,20 @@ def get_outfile_name(infilename):
     period = infilename.find('.')
     return infilename[:period] + '.hack'
 
+def get_command_type(line):
+    if line[0] == '@':
+        return 'a'
+    elif line[0] == '(':
+        return 'l'
+    else:
+        return 'c'
 
-# Runs assembler
+# Runs assembler. main, as it were
 
 infilename = input()
 infile = open(infilename)
 outfile = open(get_outfile_name(infilename), 'w')
 
-decode(infile, outfile, symbol_dict)
+get_labels(infile, dictionaries['symbol'])
+
+decode(infile, outfile, dictionaries)
