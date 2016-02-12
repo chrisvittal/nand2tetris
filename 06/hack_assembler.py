@@ -1,3 +1,5 @@
+import sys
+
 def create_symbols():
     symbol_dict = {'R{}'.format(x): '{:016b}'.format(x) for x in range(0,16)}
     predefineds = [('SP', 0), ('LCL', 1), ('ARG', 2), ('THIS', 3),
@@ -9,6 +11,22 @@ def create_symbols():
 def get_labels(infile, symbol):
     '''Runs thrught the .asm file getting the L_COMMANDs
     and assigning the appropriate numbers to them'''
+    pc = 0
+    while 1:
+        more, line = has_more_commands(infile)
+        if more:
+            newline = parse_line(line)
+            if get_command_type(newline) == 'a':
+                pc += 1
+            elif get_command_type(newline) == 'l':
+                decode_L_COMMAND(newline, symbol, pc)
+            else:
+                if parse_C(newline) == ['','','']:
+                    None # do nothing
+                else:
+                    pc +=1
+        else:
+            return pc
 
 def decode(infile, outfile, dicts):
     '''Runs through the .asm file creating the hack machine code while
@@ -24,7 +42,7 @@ def decode(infile, outfile, dicts):
                                                     dicts['symbol'],
                                                     add_used)
             elif get_command_type(newline) == 'l': #True if L_COMMAND
-                0 == 0
+                output = None # do nothing
             else: #True if C_COMMAND or not a command.
                 output = decode_C_COMMAND(newline,
                                           dicts['comp'],
@@ -46,6 +64,13 @@ def decode_A_COMMAND(line, symbol, add_used):
         else:
             symbol[line[1:]] = '{:016b}'.format(add_used)
             return symbol[line[1:]], add_used + 1
+
+def decode_L_COMMAND(line, symbol, pc):
+    if line[1:-1] in symbol:
+        sys.exit("No Duplicate Lables")
+    else:
+        symbol[line[1:-1]] = '{:016b}'.format(pc)
+        return
 
 def parse_line(line):
     line = line.replace(' ', '')
@@ -160,6 +185,7 @@ infilename = input()
 infile = open(infilename)
 outfile = open(get_outfile_name(infilename), 'w')
 
-get_labels(infile, dictionaries['symbol'])
+test = get_labels(infile, dictionaries['symbol'])
+infile = open(infilename)
 
 decode(infile, outfile, dictionaries)
