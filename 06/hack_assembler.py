@@ -1,40 +1,3 @@
-# These are the inital dictionaries used for translation
-# of the hack assembly into hack machine code.
-symbol_dict = create_symbols()
-comp_dict = {'0'  : '0101010', '1'  : '0111111',
-             '-1' : '0111010', 'D'  : '0001100',
-             'A'  : '0110000', 'M'  : '1110000',
-             '!D' : '0001101', '!A' : '0110001',
-             '!M' : '1110001', 'D+1': '0011111',
-             'A+1': '0110111', '1+D': '0011111',
-             '1+A': '0110111', 'M+1': '1110111',
-             '1+M': '1110111', 'D-1': '0001110',
-             'A-1': '0110010', 'M-1': '1110010',
-             'D+A': '0000010', 'A+D': '0000010',
-             'D+M': '1000010', 'M+D': '1000010',
-             'D-A': '0010011', 'D-M': '1010011',
-             'A-D': '0000111', 'M-D': '1000111',
-             'D&A': '0000000', 'A&D': '0000000',
-             'D&M': '1000000', 'M&D': '1000000',
-             'D|A': '0010101', 'A|D': '0010101',
-             'D|M': '1010101', 'M|D': '1010101'}
-dest_dict = {''   : '000', 'M'  : '001',
-             'D'  : '010', 'MD' : '011',
-             'DM' : '011', 'A'  : '100',
-             'AM' : '101', 'MA' : '101',
-             'AD' : '110', 'DA' : '110',
-             'AMD': '111', 'ADM': '111',
-             'DAM': '111', 'DMA': '111',
-             'MAD': '111', 'MDA': '111'}
-jump_dict = {''   : '000', 'JGT': '001',
-             'JEQ': '010', 'JGE': '011',
-             'JLT': '100', 'JNE': '101',
-             'JLE': '110', 'JMP': '111'}
-dictionaries = {'symbol': symbol_dict,
-                'comp':   comp_dict,
-                'dest':   dest_dict,
-                'jump':   jump_dict}
-
 def create_symbols():
     symbol_dict = {'R{}'.format(x): '{:016b}'.format(x) for x in range(0,16)}
     predefineds = [('SP', 0), ('LCL', 1), ('ARG', 2), ('THIS', 3),
@@ -61,13 +24,14 @@ def decode(infile, outfile, dicts):
                                                     dicts['symbol'],
                                                     add_used)
             elif get_command_type(newline) == 'l': #True if L_COMMAND
-                # do NOTHING?
+                0 == 0
             else: #True if C_COMMAND or not a command.
                 output = decode_C_COMMAND(newline,
                                           dicts['comp'],
                                           dicts['dest'],
                                           dicts['jump'])
-
+            if output != None:
+                outfile.write(output + '\n')
         else:
             outfile.close()
             return
@@ -143,12 +107,52 @@ def get_outfile_name(infilename):
     return infilename[:period] + '.hack'
 
 def get_command_type(line):
-    if line[0] == '@':
+    if line == '':
+        return 'c'
+    elif line[0] == '@':
         return 'a'
     elif line[0] == '(':
         return 'l'
     else:
         return 'c'
+
+# These are the inital dictionaries used for translation
+# of the hack assembly into hack machine code.
+symbol_dict = create_symbols()
+comp_dict = {'0'  : '0101010', '1'  : '0111111',
+             '-1' : '0111010', 'D'  : '0001100',
+             'A'  : '0110000', 'M'  : '1110000',
+             '!D' : '0001101', '!A' : '0110001',
+             '!M' : '1110001', 'D+1': '0011111',
+             'A+1': '0110111', '1+D': '0011111',
+             '1+A': '0110111', 'M+1': '1110111',
+             '1+M': '1110111', 'D-1': '0001110',
+             'A-1': '0110010', 'M-1': '1110010',
+             'D+A': '0000010', 'A+D': '0000010',
+             'D+M': '1000010', 'M+D': '1000010',
+             'D-A': '0010011', 'D-M': '1010011',
+             'A-D': '0000111', 'M-D': '1000111',
+             'D&A': '0000000', 'A&D': '0000000',
+             'D&M': '1000000', 'M&D': '1000000',
+             'D|A': '0010101', 'A|D': '0010101',
+             'D|M': '1010101', 'M|D': '1010101'}
+dest_dict = {''   : '000', 'M'  : '001',
+             'D'  : '010', 'MD' : '011',
+             'DM' : '011', 'A'  : '100',
+             'AM' : '101', 'MA' : '101',
+             'AD' : '110', 'DA' : '110',
+             'AMD': '111', 'ADM': '111',
+             'DAM': '111', 'DMA': '111',
+             'MAD': '111', 'MDA': '111'}
+jump_dict = {''   : '000', 'JGT': '001',
+             'JEQ': '010', 'JGE': '011',
+             'JLT': '100', 'JNE': '101',
+             'JLE': '110', 'JMP': '111'}
+dictionaries = {'symbol': symbol_dict,
+                'comp':   comp_dict,
+                'dest':   dest_dict,
+                'jump':   jump_dict}
+
 
 # Runs assembler. main, as it were
 
