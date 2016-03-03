@@ -11,8 +11,8 @@ main = do
     flExist <- doesFileExist inFlName
     if flExist
         then do
-            let outFlName = takeWhile (/='.')
+            let outFlName = takeWhile (/='.') inFlName ++ ".asm"
             file <- readFile inFlName
-
+            writeFile outFlName (translate 0 . parseCommands $ file)
     else error "File Not Found"
     return ()
