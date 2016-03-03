@@ -2,35 +2,46 @@ module VMCodeWriter where
 
 import VMParser
 
-translate :: Int -> [Command] -> [String]
+translate :: Int -> [Command] -> String
 -- Master function for turning list of commands, keeping track of commands
 -- translated so that conditionals and others can be uniquely identified
-translate n [] = []
-translate n (x:xs) = trans n x : translate (n+1) xs
+translate n cs = concat (go n cs)
+    where go _ [] = []
+          go n (x:xs) = trans n x : go n xs
 
 trans :: Int -> Command -> String
 trans n c = case c of
     (C_ARITHMETIC _) -> transArith n c
     (C_PUSH _ _)     -> transPushPop c
     (C_POP  _ _)     -> transPushPop c
+    _                -> undefined
 
 transArith :: Int -> Command -> String
 transArith n (C_ARITHMETIC s)
     | s == "add" =
-        "@SP\nM=M-1\nA=M\nD=M\n@SP\nM=M-1\nA=M\nM=M+D\n@SP\nM=M+1\n"
+        "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nM=M+D\n"
     | s == "sub" =
-        "@SP\nM=M-1\nA=M\nD=M\n@SP\nM=M-1\nA=M\nM=D-M\n@SP\nM=M+1\n"
+        "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nM=D-M\n"
     | s == "neg" =
-        "@SP\nM=M-1\nA=M\nM=-M\n@SP\nM=M+1\n"
-    | s == "eq"  = undefined
-    | s == "gt"  = undefined
-    | s == "lt"  = undefined
+        "@SP\nA=M-1\nM=-M\n"
+    | s == "eq"  =
+        "@SP\nAM=M-1\nD=M\nA=A-1\nD=D-M\n@EQ.TRUE."++ show n ++
+        "\nD; JEQ\n@SP\nA=M-1\nM=0\n@EQ.END.1\n0; JMP\n(EQ.TRUE."
+        ++ show n ++")\n@SP\nA=M-1\nM=-1\n(EQ.END."++ show n ++")\n"
+    | s == "gt"  =
+        "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@GT.TRUE."++ show n ++
+        "\nD; JGT\n@SP\nA=M-1\nM=0\n@EQ.END.1\n0; JMP\n(GT.TRUE."
+        ++ show n ++")\n@SP\nA=M-1\nM=-1\n(GT.END."++ show n ++")\n"
+    | s == "lt"  =
+        "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@LT.TRUE."++ show n ++
+        "\nD; JLT\n@SP\nA=M-1\nM=0\n@EQ.END.1\n0; JMP\n(LT.TRUE."
+        ++ show n ++")\n@SP\nA=M-1\nM=-1\n(LT.END."++ show n ++")\n"
     | s == "and" =
-        "@SP\nM=M-1\nA=M\nD=M\n@SP\nM=M-1\nA=M\nM=D&M\n@SP\nM=M+1\n"
+        "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nM=D&M\n"
     | s == "or"  =
-        "@SP\nM=M-1\nA=M\nD=M\n@SP\nM=M-1\nA=M\nM=D|M\n@SP\nM=M+1\n"
+        "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nM=D|M\n"
     | s == "not" =
-        "@SP\nM=M-1\nA=M\nM=!M\n@SP\nM=M+1\n"
+        "@SP\nA=M-1\nM=!M\n"
 
 transPushPop :: Command -> String
 transPushPop (C_PUSH loc ind)

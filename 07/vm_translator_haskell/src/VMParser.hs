@@ -1,4 +1,4 @@
-module VMParser (Command(..), parseCommand, dropComms) where
+module VMParser (Command(..), parseCommand, dropComms, parseCommands) where
 
 data Command = C_ARITHMETIC String
              | C_PUSH String Int
@@ -30,6 +30,11 @@ dropComms :: String -> [String]
 -- Gets rid of comments, newlines, whitespace
 -- Puts each command in it's own list entry
 dropComms = words . takeWhile (\x -> x/='\n' && x/='/')
+
+parseCommands :: String -> [Command]
+parseCommands =
+    map parseCommand . filter (/=[]) . map dropComms . lines
+
 tst = "push constant 3030 // pointer, this, and that segments."
 tst2 = "push constant 3030 \n// pointer, this, and that segments."
 
